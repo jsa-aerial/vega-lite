@@ -3,8 +3,8 @@ import {COLUMN, ROW, X, X2, Y, Y2} from './channel';
 import * as compositeMark from './compositemark';
 import {Config} from './config';
 import {Data} from './data';
+import {channelHasField, Encoding, EncodingWithFacet, extractTransformsFromEncoding, isRanged} from './encoding';
 import * as vlEncoding from './encoding';
-import {channelHasField, Encoding, EncodingWithFacet, isRanged} from './encoding';
 import {FacetMapping} from './facet';
 import {Field, FieldDef, RepeatRef} from './fielddef';
 import * as log from './log';
@@ -31,17 +31,17 @@ import {Dict, duplicate, hash, keys, omit, pick, vals} from './util';
 
 export type TopLevel<S extends BaseSpec> = S &
   TopLevelProperties & {
-    /**
-     * URL to [JSON schema](http://json-schema.org/) for a Vega-Lite specification. Unless you have a reason to change this, use `https://vega.github.io/schema/vega-lite/v2.json`. Setting the `$schema` property allows automatic validation and autocomplete in editors that support JSON schema.
-     * @format uri
-     */
-    $schema?: string;
+  /**
+   * URL to [JSON schema](http://json-schema.org/) for a Vega-Lite specification. Unless you have a reason to change this, use `https://vega.github.io/schema/vega-lite/v2.json`. Setting the `$schema` property allows automatic validation and autocomplete in editors that support JSON schema.
+   * @format uri
+   */
+  $schema?: string;
 
-    /**
-     * Vega-Lite configuration object.  This property can only be defined at the top-level of a specification.
-     */
-    config?: Config;
-  };
+  /**
+   * Vega-Lite configuration object.  This property can only be defined at the top-level of a specification.
+   */
+  config?: Config;
+};
 
 export type BaseSpec = Partial<DataMixins> & {
   /**
@@ -178,7 +178,7 @@ export type NormalizedLayerSpec = GenericLayerSpec<NormalizedUnitSpec>;
 
 export interface GenericFacetSpec<U extends GenericUnitSpec<any, any>, L extends GenericLayerSpec<any>>
   extends BaseSpec,
-    GenericCompositionLayout {
+  GenericCompositionLayout {
   /**
    * An object that describes mappings between `row` and `column` channels and their field definitions.
    */
@@ -200,7 +200,7 @@ export type NormalizedFacetSpec = GenericFacetSpec<NormalizedUnitSpec, Normalize
 
 export interface GenericRepeatSpec<U extends GenericUnitSpec<any, any>, L extends GenericLayerSpec<any>>
   extends BaseSpec,
-    GenericCompositionLayout {
+  GenericCompositionLayout {
   /**
    * An object that describes what fields should be repeated into views that are laid out as a `row` or `column`.
    */
@@ -218,7 +218,7 @@ export type NormalizedRepeatSpec = GenericRepeatSpec<NormalizedUnitSpec, Normali
 
 export interface GenericVConcatSpec<U extends GenericUnitSpec<any, any>, L extends GenericLayerSpec<any>>
   extends BaseSpec,
-    ConcatLayout {
+  ConcatLayout {
   /**
    * A list of views that should be concatenated and put into a column.
    */
@@ -232,7 +232,7 @@ export interface GenericVConcatSpec<U extends GenericUnitSpec<any, any>, L exten
 
 export interface GenericHConcatSpec<U extends GenericUnitSpec<any, any>, L extends GenericLayerSpec<any>>
   extends BaseSpec,
-    ConcatLayout {
+  ConcatLayout {
   /**
    * A list of views that should be concatenated and put into a row.
    */
@@ -325,7 +325,6 @@ export function normalize(
   if (isUnitSpec(spec)) {
     const hasRow = channelHasField(spec.encoding, ROW);
     const hasColumn = channelHasField(spec.encoding, COLUMN);
-
     if (hasRow || hasColumn) {
       return normalizeFacetedUnit(spec, config);
     }
@@ -716,4 +715,55 @@ export function isStacked(spec: TopLevel<FacetedCompositeUnitSpec>, config?: Con
     return stack(spec.mark, spec.encoding, config ? config.stack : undefined) !== null;
   }
   return false;
+}
+
+export function extractTransforms(spec: NormalizedSpec, config: Config): NormalizedSpec {
+  if (isFacetSpec(spec) || isRepeatSpec(spec)) {
+    return extractTransformsSingle(spec, config);
+  }
+  if (isLayerSpec(spec)) {
+    return extractTransformsLayered(spec, config);
+  }
+  if (isUnitSpec(spec)) {
+    return extractTransformsUnit(spec, config);
+  }
+  throw new Error(log.message.INVALID_SPEC);
+}
+
+function extractTransformsUnit(spec: NormalizedUnitSpec, config: Config): NormalizedUnitSpec {
+  if (spec.encoding) {
+    const {encoding: oldEncoding, transform: oldTransforms, ...rest} = spec;
+    const {bins, timeUnits, aggregate, groupby, encoding: newEncoding} = extractTransformsFromEncoding(oldEncoding, config);
+    return {
+      transform: [
+        ...bins,
+        ...timeUnits,
+        ...(!aggregate.length ? [] : [{aggregate, groupby}]),
+        ...(oldTransforms ? oldTransforms : [])
+      ],
+      ...rest,
+      encoding: newEncoding
+    };
+  } else {
+    // No encoding, so there are no transforms to extract
+    return spec;
+  }
+}
+
+function extractTransformsSingle(spec: NormalizedFacetSpec | NormalizedRepeatSpec, config: Config): NormalizedFacetSpec | NormalizedRepeatSpec {
+  const {spec: subspec, ...rest} = spec;
+  return {
+    ...rest,
+    spec: extractTransforms(subspec, config) as any
+  };
+}
+
+function extractTransformsLayered(spec: NormalizedLayerSpec, config: Config): NormalizedLayerSpec {
+  const {layer, ...rest} = spec;
+  return {
+    ...rest,
+    layer: layer.map((subspec) => {
+      return extractTransforms(subspec, config) as any;
+    })
+  };
 }
