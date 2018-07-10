@@ -1,7 +1,8 @@
 import {isArray} from 'vega-util';
 import {isAggregateOp} from './aggregate';
 import {isBinning} from './bin';
-import {Channel, CHANNELS, isChannel, supportMark, isNonPositionScaleChannel} from './channel';
+import {Channel, CHANNELS, isChannel, isNonPositionScaleChannel, supportMark} from './channel';
+import {binRequiresRange} from './compile/common';
 import {Config} from './config';
 import {FacetMapping} from './facet';
 import {
@@ -31,9 +32,8 @@ import * as log from './log';
 import {Mark} from './mark';
 import {getDateTimeComponents} from './timeunit';
 import {AggregatedFieldDef, BinTransform, TimeUnitTransform} from './transform';
-import {keys, some} from './util';
-import {binRequiresRange} from './compile/common';
 import {Type} from './type';
+import {keys, some} from './util';
 
 export interface Encoding<F> {
   /**
@@ -208,9 +208,10 @@ export function extractTransformsFromEncoding(oldEncoding: Encoding<string | Rep
     if (isFieldDef(channelDef)) {
       // Extract potential embedded transformations along with remaining properties
       const {field, aggregate: aggOp, timeUnit, bin, ...remaining} = channelDef;
-      const isTitleDefined = channelDef['title']
-        || (channelDef['axis'] && channelDef['axis']['title'])
-        || (channelDef['legend'] && channelDef['legend']['title']);
+      const isTitleDefined =
+        channelDef['title'] ||
+        (channelDef['axis'] && channelDef['axis']['title']) ||
+        (channelDef['legend'] && channelDef['legend']['title']);
       const newField = vgField(channelDef);
       const newChannelDef = {
         // Only add title if it doesn't exist
@@ -240,7 +241,7 @@ export function extractTransformsFromEncoding(oldEncoding: Encoding<string | Rep
         if (isPositionChannel) {
           const secondaryChannel: FieldDef<string> = {
             field: newField + '_end',
-            type: Type.QUANTITATIVE,
+            type: Type.QUANTITATIVE
           };
           encoding[channel + '2'] = secondaryChannel;
         }

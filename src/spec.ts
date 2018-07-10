@@ -31,17 +31,17 @@ import {Dict, duplicate, hash, keys, omit, pick, vals} from './util';
 
 export type TopLevel<S extends BaseSpec> = S &
   TopLevelProperties & {
-  /**
-   * URL to [JSON schema](http://json-schema.org/) for a Vega-Lite specification. Unless you have a reason to change this, use `https://vega.github.io/schema/vega-lite/v2.json`. Setting the `$schema` property allows automatic validation and autocomplete in editors that support JSON schema.
-   * @format uri
-   */
-  $schema?: string;
+    /**
+     * URL to [JSON schema](http://json-schema.org/) for a Vega-Lite specification. Unless you have a reason to change this, use `https://vega.github.io/schema/vega-lite/v2.json`. Setting the `$schema` property allows automatic validation and autocomplete in editors that support JSON schema.
+     * @format uri
+     */
+    $schema?: string;
 
-  /**
-   * Vega-Lite configuration object.  This property can only be defined at the top-level of a specification.
-   */
-  config?: Config;
-};
+    /**
+     * Vega-Lite configuration object.  This property can only be defined at the top-level of a specification.
+     */
+    config?: Config;
+  };
 
 export type BaseSpec = Partial<DataMixins> & {
   /**
@@ -178,7 +178,7 @@ export type NormalizedLayerSpec = GenericLayerSpec<NormalizedUnitSpec>;
 
 export interface GenericFacetSpec<U extends GenericUnitSpec<any, any>, L extends GenericLayerSpec<any>>
   extends BaseSpec,
-  GenericCompositionLayout {
+    GenericCompositionLayout {
   /**
    * An object that describes mappings between `row` and `column` channels and their field definitions.
    */
@@ -200,7 +200,7 @@ export type NormalizedFacetSpec = GenericFacetSpec<NormalizedUnitSpec, Normalize
 
 export interface GenericRepeatSpec<U extends GenericUnitSpec<any, any>, L extends GenericLayerSpec<any>>
   extends BaseSpec,
-  GenericCompositionLayout {
+    GenericCompositionLayout {
   /**
    * An object that describes what fields should be repeated into views that are laid out as a `row` or `column`.
    */
@@ -218,7 +218,7 @@ export type NormalizedRepeatSpec = GenericRepeatSpec<NormalizedUnitSpec, Normali
 
 export interface GenericVConcatSpec<U extends GenericUnitSpec<any, any>, L extends GenericLayerSpec<any>>
   extends BaseSpec,
-  ConcatLayout {
+    ConcatLayout {
   /**
    * A list of views that should be concatenated and put into a column.
    */
@@ -232,7 +232,7 @@ export interface GenericVConcatSpec<U extends GenericUnitSpec<any, any>, L exten
 
 export interface GenericHConcatSpec<U extends GenericUnitSpec<any, any>, L extends GenericLayerSpec<any>>
   extends BaseSpec,
-  ConcatLayout {
+    ConcatLayout {
   /**
    * A list of views that should be concatenated and put into a row.
    */
@@ -733,7 +733,10 @@ export function extractTransforms(spec: NormalizedSpec, config: Config): Normali
 function extractTransformsUnit(spec: NormalizedUnitSpec, config: Config): NormalizedUnitSpec {
   if (spec.encoding) {
     const {encoding: oldEncoding, transform: oldTransforms, ...rest} = spec;
-    const {bins, timeUnits, aggregate, groupby, encoding: newEncoding} = extractTransformsFromEncoding(oldEncoding, config);
+    const {bins, timeUnits, aggregate, groupby, encoding: newEncoding} = extractTransformsFromEncoding(
+      oldEncoding,
+      config
+    );
     return {
       transform: [
         ...bins,
@@ -750,7 +753,10 @@ function extractTransformsUnit(spec: NormalizedUnitSpec, config: Config): Normal
   }
 }
 
-function extractTransformsSingle(spec: NormalizedFacetSpec | NormalizedRepeatSpec, config: Config): NormalizedFacetSpec | NormalizedRepeatSpec {
+function extractTransformsSingle(
+  spec: NormalizedFacetSpec | NormalizedRepeatSpec,
+  config: Config
+): NormalizedFacetSpec | NormalizedRepeatSpec {
   const {spec: subspec, ...rest} = spec;
   return {
     ...rest,
@@ -762,7 +768,7 @@ function extractTransformsLayered(spec: NormalizedLayerSpec, config: Config): No
   const {layer, ...rest} = spec;
   return {
     ...rest,
-    layer: layer.map((subspec) => {
+    layer: layer.map(subspec => {
       return extractTransforms(subspec, config) as any;
     })
   };

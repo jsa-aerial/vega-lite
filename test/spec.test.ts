@@ -806,42 +806,44 @@ describe('extractTransforms()', () => {
   describe('extractTransformsSingle()', () => {
     it('should extract transforms from faceted spec', () => {
       const spec: any = {
-        "name": "faceted",
-        "description": "faceted spec",
-        "data": {"url": "data/movies.json"},
-        "facet": {
-          "column": {"field": "MPAA_Rating", "type": "ordinal"}
+        name: 'faceted',
+        description: 'faceted spec',
+        data: {url: 'data/movies.json'},
+        facet: {
+          column: {field: 'MPAA_Rating', type: 'ordinal'}
         },
-        "spec": {
-          "mark": "point",
-          "width": 123,
-          "height": 234,
-          "encoding": {
-            "x": {"field": "Worldwide_Gross", "type": "quantitative"},
-            "y": {"type": "quantitative", "aggregate": "count"}
+        spec: {
+          mark: 'point',
+          width: 123,
+          height: 234,
+          encoding: {
+            x: {field: 'Worldwide_Gross', type: 'quantitative'},
+            y: {type: 'quantitative', aggregate: 'count'}
           }
         }
       };
       const config = initConfig(spec.config);
       const output: any = extractTransforms(spec, config);
       assert.deepEqual(output, {
-        "name": "faceted",
-        "description": "faceted spec",
-        "data": {"url": "data/movies.json"},
-        "facet": {
-          "column": {"field": "MPAA_Rating", "type": "ordinal"}
+        name: 'faceted',
+        description: 'faceted spec',
+        data: {url: 'data/movies.json'},
+        facet: {
+          column: {field: 'MPAA_Rating', type: 'ordinal'}
         },
-        "spec": {
-          "transform": [{
-            "aggregate": [{"op": "count", "as": "count_*"}],
-            "groupby": ["Worldwide_Gross"]
-          }],
-          "mark": "point",
-          "width": 123,
-          "height": 234,
-          "encoding": {
-            "x": {"field": "Worldwide_Gross", "type": "quantitative", "title": "Worldwide_Gross"},
-            "y": {"field": "count_*", "type": "quantitative", "title": "Number of Records"}
+        spec: {
+          transform: [
+            {
+              aggregate: [{op: 'count', as: 'count_*'}],
+              groupby: ['Worldwide_Gross']
+            }
+          ],
+          mark: 'point',
+          width: 123,
+          height: 234,
+          encoding: {
+            x: {field: 'Worldwide_Gross', type: 'quantitative', title: 'Worldwide_Gross'},
+            y: {field: 'count_*', type: 'quantitative', title: 'Number of Records'}
           }
         }
       });
@@ -850,113 +852,117 @@ describe('extractTransforms()', () => {
   describe('extractTransformsLayered()', () => {
     it('should extract transforms from a layered spec', () => {
       const spec: any = {
-        "data": {"url": "data/seattle-weather.csv"},
-        "layer": [
+        data: {url: 'data/seattle-weather.csv'},
+        layer: [
           {
-            "mark": "bar",
-            "encoding": {
-              "x": {
-                "timeUnit": "month",
-                "field": "date",
-                "type": "ordinal"
+            mark: 'bar',
+            encoding: {
+              x: {
+                timeUnit: 'month',
+                field: 'date',
+                type: 'ordinal'
               },
-              "y": {
-                "aggregate": "mean",
-                "field": "precipitation",
-                "type": "quantitative",
-                "axis": {
-                  "grid": false
+              y: {
+                aggregate: 'mean',
+                field: 'precipitation',
+                type: 'quantitative',
+                axis: {
+                  grid: false
                 }
               }
             }
           },
           {
-            "mark": "line",
-            "encoding": {
-              "x": {
-                "timeUnit": "month",
-                "field": "date",
-                "type": "ordinal"
+            mark: 'line',
+            encoding: {
+              x: {
+                timeUnit: 'month',
+                field: 'date',
+                type: 'ordinal'
               },
-              "y": {
-                "aggregate": "mean",
-                "field": "temp_max",
-                "type": "quantitative",
-                "axis": {
-                  "grid": false
+              y: {
+                aggregate: 'mean',
+                field: 'temp_max',
+                type: 'quantitative',
+                axis: {
+                  grid: false
                 },
-                "scale": {"zero": false}
+                scale: {zero: false}
               },
-              "color": {"value": "firebrick"}
+              color: {value: 'firebrick'}
             }
           }
         ],
-        "resolve": {"scale": {"y": "independent"}}
+        resolve: {scale: {y: 'independent'}}
       };
       const config: any = initConfig(spec.config);
       const output: any = extractTransforms(normalize(spec, config), config);
-      assert.deepEqual(output, normalize({
-        "data": {"url": "data/seattle-weather.csv"},
-        "layer": [
+      assert.deepEqual(
+        output,
+        normalize(
           {
-            "transform": [
-              {"timeUnit": "month", "field": "date", "as": "month_date"},
+            data: {url: 'data/seattle-weather.csv'},
+            layer: [
               {
-                "aggregate": [
-                  {"op": "mean", "field": "precipitation", "as": "mean_precipitation"}
-                ], "groupby": ["month_date"]
-              }
-            ],
-            "mark": "bar",
-            "encoding": {
-              "x": {
-                "field": "month_date",
-                "type": "ordinal",
-                "title": "date (month)",
-                "axis": {"format": "%b"}
+                transform: [
+                  {timeUnit: 'month', field: 'date', as: 'month_date'},
+                  {
+                    aggregate: [{op: 'mean', field: 'precipitation', as: 'mean_precipitation'}],
+                    groupby: ['month_date']
+                  }
+                ],
+                mark: 'bar',
+                encoding: {
+                  x: {
+                    field: 'month_date',
+                    type: 'ordinal',
+                    title: 'date (month)',
+                    axis: {format: '%b'}
+                  },
+                  y: {
+                    field: 'mean_precipitation',
+                    type: 'quantitative',
+                    title: 'Mean of precipitation',
+                    axis: {
+                      grid: false
+                    }
+                  }
+                }
               },
-              "y": {
-                "field": "mean_precipitation",
-                "type": "quantitative",
-                "title": "Mean of precipitation",
-                "axis": {
-                  "grid": false
+              {
+                mark: 'line',
+                transform: [
+                  {timeUnit: 'month', field: 'date', as: 'month_date'},
+                  {
+                    aggregate: [{op: 'mean', field: 'temp_max', as: 'mean_temp_max'}],
+                    groupby: ['month_date']
+                  }
+                ],
+                encoding: {
+                  x: {
+                    field: 'month_date',
+                    type: 'ordinal',
+                    title: 'date (month)',
+                    axis: {format: '%b'}
+                  },
+                  y: {
+                    field: 'mean_temp_max',
+                    type: 'quantitative',
+                    title: 'Mean of temp_max',
+                    axis: {
+                      grid: false
+                    },
+                    scale: {zero: false}
+                  },
+                  color: {value: 'firebrick'}
                 }
               }
-            }
-          },
-          {
-            "mark": "line",
-            "transform": [
-              {"timeUnit": "month", "field": "date", "as": "month_date"},
-              {
-                "aggregate": [
-                  {"op": "mean", "field": "temp_max", "as": "mean_temp_max"}
-                ], "groupby": ["month_date"]
-              }
             ],
-            "encoding": {
-              "x": {
-                "field": "month_date",
-                "type": "ordinal",
-                "title": "date (month)",
-                "axis": {"format": "%b"}
-              },
-              "y": {
-                "field": "mean_temp_max",
-                "type": "quantitative",
-                "title": "Mean of temp_max",
-                "axis": {
-                  "grid": false
-                },
-                "scale": {"zero": false}
-              },
-              "color": {"value": "firebrick"}
-            }
-          }
-        ],
-        "resolve": {"scale": {"y": "independent"}}
-      }, config));
+            resolve: {scale: {y: 'independent'}}
+          },
+          config
+        )
+      );
     });
   });
 });

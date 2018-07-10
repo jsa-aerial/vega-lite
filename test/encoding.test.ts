@@ -43,10 +43,16 @@ describe('encoding', () => {
   });
   describe('extractTransformsFromEncoding', () => {
     it('should extract time unit from encoding field definition and add axis format', () => {
-      const output = extractTransformsFromEncoding(normalizeEncoding({
-        x: {timeUnit: 'yearmonthdatehoursminutes', field: 'a', type: 'temporal'},
-        y: {field: 'b', type: 'quantitative'}
-      }, 'line'), defaultConfig);
+      const output = extractTransformsFromEncoding(
+        normalizeEncoding(
+          {
+            x: {timeUnit: 'yearmonthdatehoursminutes', field: 'a', type: 'temporal'},
+            y: {field: 'b', type: 'quantitative'}
+          },
+          'line'
+        ),
+        defaultConfig
+      );
       expect(output).toEqual({
         bins: [],
         timeUnits: [{timeUnit: 'yearmonthdatehoursminutes', field: 'a', as: 'yearmonthdatehoursminutes_a'}],
@@ -64,14 +70,20 @@ describe('encoding', () => {
       });
     });
     it('should extract aggregates from encoding', () => {
-      const output = extractTransformsFromEncoding(normalizeEncoding({
-        x: {field: 'a', type: 'quantitative'},
-        y: {
-          aggregate: 'max',
-          field: 'b',
-          type: 'quantitative',
-        }
-      }, 'line'), defaultConfig);
+      const output = extractTransformsFromEncoding(
+        normalizeEncoding(
+          {
+            x: {field: 'a', type: 'quantitative'},
+            y: {
+              aggregate: 'max',
+              field: 'b',
+              type: 'quantitative'
+            }
+          },
+          'line'
+        ),
+        defaultConfig
+      );
       assert.deepEqual(output, {
         bins: [],
         timeUnits: [],
@@ -80,39 +92,53 @@ describe('encoding', () => {
         encoding: {
           x: {field: 'a', type: 'quantitative', title: 'a'},
           y: {
-            field: 'max_b', type: 'quantitative', title: 'Max of b',
+            field: 'max_b',
+            type: 'quantitative',
+            title: 'Max of b'
           }
         }
       });
     });
     it('should extract binning from encoding', () => {
-      const output = extractTransformsFromEncoding(normalizeEncoding({
-        x: {field: 'a', type: 'ordinal', bin: true},
-        y: {type: 'quantitative', aggregate: 'count'}
-      }, 'bar'), defaultConfig);
+      const output = extractTransformsFromEncoding(
+        normalizeEncoding(
+          {
+            x: {field: 'a', type: 'ordinal', bin: true},
+            y: {type: 'quantitative', aggregate: 'count'}
+          },
+          'bar'
+        ),
+        defaultConfig
+      );
       assert.deepEqual(output, {
         bins: [{bin: {maxbins: 10}, field: 'a', as: 'bin_maxbins_10_a'}],
         timeUnits: [],
         aggregate: [{op: 'count', as: 'count_*'}],
         groupby: ['bin_maxbins_10_a_end', 'bin_maxbins_10_a_range', 'bin_maxbins_10_a'],
         encoding: {
-          x : {field: 'bin_maxbins_10_a', type: 'quantitative', title: 'a (binned)'},
+          x: {field: 'bin_maxbins_10_a', type: 'quantitative', title: 'a (binned)'},
           x2: {field: 'bin_maxbins_10_a_end', type: 'quantitative'},
-          y : {field: 'count_*', type: 'quantitative', title: 'Number of Records'}
+          y: {field: 'count_*', type: 'quantitative', title: 'Number of Records'}
         }
       });
     });
     it('should preserve auxiliary properties (i.e. axis) in encoding', () => {
-      const output = extractTransformsFromEncoding(normalizeEncoding({
-        x: {field: 'a', type: 'quantitative'},
-        y: {
-          aggregate: 'mean',
-          field: 'b',
-          type: 'quantitative',
-          title: 'foo',
-          axis: {title: 'foo', format: '.2e'}
-        }
-      }, 'line'), defaultConfig);
+      const output = extractTransformsFromEncoding(
+        normalizeEncoding(
+          {
+            x: {field: 'a', type: 'quantitative'},
+            y: {
+              aggregate: 'mean',
+              field: 'b',
+              type: 'quantitative',
+              title: 'foo',
+              axis: {title: 'foo', format: '.2e'}
+            }
+          },
+          'line'
+        ),
+        defaultConfig
+      );
       assert.deepEqual(output, {
         bins: [],
         timeUnits: [],
@@ -121,7 +147,9 @@ describe('encoding', () => {
         encoding: {
           x: {field: 'a', type: 'quantitative', title: 'a'},
           y: {
-            field: 'mean_b', type: 'quantitative', title: 'foo',
+            field: 'mean_b',
+            type: 'quantitative',
+            title: 'foo',
             axis: {title: 'foo', format: '.2e'}
           }
         }
