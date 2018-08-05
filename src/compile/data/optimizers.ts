@@ -2,6 +2,7 @@ import {fieldIntersection, keys} from '../../util';
 import {DataFlowNode, isTransformNode, OutputNode, TransformNode} from './dataflow';
 import {FacetNode} from './facet';
 import {ParseNode} from './formatparse';
+import {BottomUpOptimizer, TopDownOptimizer} from './optimizer';
 import {SourceNode} from './source';
 import {TimeUnitNode} from './timeunit';
 
@@ -38,9 +39,6 @@ export function iterateFromLeaves(f: (node: DataFlowNode) => OptimizerFlags) {
   return optimizeNextFromLeaves;
 }
 
-/**
- * Move parse nodes up to forks.
- */
 export function moveParseUp(node: DataFlowNode): OptimizerFlags {
   const parent = node.parent;
   let flag = false;
@@ -70,37 +68,41 @@ export function moveParseUp(node: DataFlowNode): OptimizerFlags {
   return {continueFlag: true, mutatedFlag: flag};
 }
 
-function mergeBucket(parent: DataFlowNode, nodes: DataFlowNode[]) {
-  const mergedTransform = nodes.shift();
-  nodes.forEach(x => {
-    parent.removeChild(x);
-    x.parent = mergedTransform;
-    x.remove();
-  });
-}
-
 /**
  * Merge Identical Transforms at forks by comparing hashes.
  */
-export function mergeIdenticalTransforms(node: DataFlowNode): boolean {
-  let flag = false;
-  const transforms = node.children.filter((x): x is TransformNode => isTransformNode(x));
-  const hashes = transforms.map(x => x.hash());
-  const buckets: {hash?: DataFlowNode[]} = {};
-  for (let i = 0; i < hashes.length; i++) {
-    if (buckets[hashes[i]] === undefined) {
-      buckets[hashes[i]] = [transforms[i]];
-    } else {
-      buckets[hashes[i]].push(transforms[i]);
-    }
+export class MergeIdenticalTransforms extends TopDownOptimizer {
+  public mergeBucket(parent: DataFlowNode, nodes: DataFlowNode[]) {
+    const mergedTransform = nodes.shift();
+    nodes.forEach(x => {
+      parent.removeChild(x);
+      x.parent = mergedTransform;
+      x.remove();
+    });
   }
-  for (const k of keys(buckets)) {
-    if (buckets[k].length > 1) {
-      flag = true;
-      mergeBucket(node, buckets[k]);
+
+  public optimize(node: DataFlowNode): boolean {
+    const transforms = node.children.filter((x): x is TransformNode => isTransformNode(x));
+    const hashes = transforms.map(x => x.hash());
+    const buckets: {hash?: DataFlowNode[]} = {};
+    for (let i = 0; i < hashes.length; i++) {
+      if (buckets[hashes[i]] === undefined) {
+        buckets[hashes[i]] = [transforms[i]];
+      } else {
+        buckets[hashes[i]].push(transforms[i]);
+      }
     }
+    for (const k of keys(buckets)) {
+      if (buckets[k].length > 1) {
+        this.setMutated();
+        this.mergeBucket(node, buckets[k]);
+      }
+    }
+    for (const child of node.children) {
+      this.optimize(child);
+    }
+    return this.mutatedFlag;
   }
-  return node.children.map(mergeIdenticalTransforms).some(x => x === true) || flag;
 }
 
 /**
@@ -108,17 +110,17 @@ export function mergeIdenticalTransforms(node: DataFlowNode): boolean {
  * The reason is that we don't need subtrees that don't have any output nodes.
  * Facet nodes are needed for the row or column domains.
  */
-export function removeUnusedSubtrees(node: DataFlowNode): OptimizerFlags {
-  // @ts-ignore
-  let flag = false;
-  if (node instanceof OutputNode || node.numChildren() > 0 || node instanceof FacetNode) {
-    // no need to continue with parent because it is output node or will have children (there was a fork)
-    return {continueFlag: false, mutatedFlag: flag};
-  } else {
-    flag = true;
-    node.remove();
+export class RemoveUnusedSubtrees extends BottomUpOptimizer {
+  public optimize(node: DataFlowNode): OptimizerFlags {
+    if (node instanceof OutputNode || node.numChildren() > 0 || node instanceof FacetNode) {
+      // no need to continue with parent because it is output node or will have children (there was a fork)
+      return this.flags;
+    } else {
+      this.setMutated();
+      node.remove();
+    }
+    return this.flags;
   }
-  return {continueFlag: true, mutatedFlag: flag};
 }
 
 /**
@@ -126,22 +128,22 @@ export function removeUnusedSubtrees(node: DataFlowNode): OptimizerFlags {
  * output field) that may be generated due to selections projected over
  * time units.
  */
-export function removeDuplicateTimeUnits(leaf: DataFlowNode) {
-  let fields = {};
-  return iterateFromLeaves((node: DataFlowNode) => {
-    let flag = false;
+
+export class RemoveDuplicateTimeUnits extends BottomUpOptimizer {
+  private fields = {};
+  public optimize(node: DataFlowNode): OptimizerFlags {
+    this.setContinue();
     if (node instanceof TimeUnitNode) {
       const pfields = node.producedFields();
-      const dupe = keys(pfields).every(k => !!fields[k]);
+      const dupe = keys(pfields).every(k => !!this.fields[k]);
 
       if (dupe) {
-        flag = true;
+        this.setMutated();
         node.remove();
       } else {
-        fields = {...fields, ...pfields};
+        this.fields = {...this.fields, ...pfields};
       }
     }
-
-    return {continueFlag: true, mutatedFlag: flag};
-  })(leaf);
+    return this.flags;
+  }
 }

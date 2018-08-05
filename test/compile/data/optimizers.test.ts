@@ -3,7 +3,7 @@
 import {assert} from 'chai';
 import {DataFlowNode} from '../../../src/compile/data/dataflow';
 import {ImputeNode} from '../../../src/compile/data/impute';
-import {mergeIdenticalTransforms} from '../../../src/compile/data/optimizers';
+import {MergeIdenticalTransforms} from '../../../src/compile/data/optimizers';
 import {Transform} from '../../../src/transform';
 
 describe('compile/data/optimizer', () => {
@@ -18,7 +18,8 @@ describe('compile/data/optimizer', () => {
     const transform1 = new ImputeNode(root, transform);
     // @ts-ignore
     const transform2 = new ImputeNode(root, transform);
-    mergeIdenticalTransforms(root);
+    const optimizer = new MergeIdenticalTransforms();
+    optimizer.optimize(root);
     assert.deepEqual(root.children.length, 1);
     assert.deepEqual(root.children[0], transform1);
   });
