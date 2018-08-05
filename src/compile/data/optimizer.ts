@@ -3,7 +3,11 @@ import {OptimizerFlags} from './optimizers';
 import {SourceNode} from './source';
 
 abstract class OptimizerBase {
-  private _mutated = false;
+  private _mutated: boolean;
+  constructor() {
+    this._mutated = false;
+  }
+
   public setMutated() {
     this._mutated = true;
   }
@@ -14,7 +18,13 @@ abstract class OptimizerBase {
 }
 
 export abstract class BottomUpOptimizer extends OptimizerBase {
-  private _continue = false;
+  private _continue: boolean;
+
+  constructor() {
+    super();
+    this._continue = false;
+  }
+
   public setContinue() {
     this._continue = true;
   }
@@ -52,5 +62,8 @@ export abstract class BottomUpOptimizer extends OptimizerBase {
 }
 
 export abstract class TopDownOptimizer extends OptimizerBase {
+  constructor() {
+    super();
+  }
   public abstract optimize(node: DataFlowNode): boolean;
 }

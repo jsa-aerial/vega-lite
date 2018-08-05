@@ -6,6 +6,7 @@ import {FacetNode} from './facet';
 import {ParseNode} from './formatparse';
 import {DataComponent} from './index';
 import {BottomUpOptimizer, TopDownOptimizer} from './optimizer';
+import {MergeIdenticalTransforms} from './optimizers';
 import * as optimizers from './optimizers';
 import {SourceNode} from './source';
 import {StackNode} from './stack';
@@ -200,70 +201,37 @@ export class MergeParse extends BottomUpOptimizer {
   }
 }
 
+// any type to avoid error of Cannot use 'new' with an expression whose type lacks a call or construct signature.
+function runOptimizer(flag: boolean, nodes: DataFlowNode[], optimizer: any) {
+  const flags = nodes.map(node => {
+    const optimizerInstance = new optimizer();
+    if (optimizerInstance instanceof BottomUpOptimizer) {
+      return optimizerInstance.optimizeNextFromLeaves(node);
+    } else {
+      return optimizerInstance.optimize(node);
+    }
+  });
+  return flags.some(x => x === true) || flag;
+}
+
 function optimizationDataflowHelper(dataComponent: DataComponent) {
   let roots: SourceNode[] = vals(dataComponent.sources);
   let mutatedFlag = false;
 
-  // mutatedFlag should always be on the right side otherwise short circuit logic might cause the mutating method to not execute
-  mutatedFlag =
-    roots
-      .map(node => {
-        const x = new RemoveUnnecessaryNodes();
-        return x.optimize(node);
-      })
-      .some(x => x === true) || mutatedFlag;
+  mutatedFlag = runOptimizer(mutatedFlag, roots, RemoveUnnecessaryNodes);
 
   // remove source nodes that don't have any children because they also don't have output nodes
   roots = roots.filter(r => r.numChildren() > 0);
 
-  mutatedFlag =
-    getLeaves(roots)
-      .map(node => {
-        const x = new optimizers.RemoveUnusedSubtrees();
-        return x.optimizeNextFromLeaves(node);
-      })
-      .some(x => x === true) || mutatedFlag;
+  mutatedFlag = runOptimizer(mutatedFlag, getLeaves(roots), optimizers.RemoveUnusedSubtrees);
 
   roots = roots.filter(r => r.numChildren() > 0);
 
-  mutatedFlag =
-    getLeaves(roots)
-      .map(node => {
-        const x = new MoveParseUp();
-        return x.optimizeNextFromLeaves(node);
-      })
-      .some(x => x === true) || mutatedFlag;
-
-  mutatedFlag =
-    getLeaves(roots)
-      .map(node => {
-        const x = new MergeParse();
-        return x.optimizeNextFromLeaves(node);
-      })
-      .some(x => x === true) || mutatedFlag;
-
-  mutatedFlag =
-    getLeaves(roots)
-      .map(node => {
-        const x = new optimizers.RemoveDuplicateTimeUnits();
-        return x.optimizeNextFromLeaves(node);
-      })
-      .some(x => x === true) || mutatedFlag;
-
-  mutatedFlag =
-    roots
-      .map(node => {
-        const x = new MoveFacetDown();
-        return x.optimize(node);
-      })
-      .some(x => x === true) || mutatedFlag;
-  mutatedFlag =
-    roots
-      .map(node => {
-        const x = new optimizers.MergeIdenticalTransforms();
-        return x.optimize(node);
-      })
-      .some(x => x === true) || mutatedFlag;
+  mutatedFlag = runOptimizer(mutatedFlag, getLeaves(roots), MoveParseUp);
+  mutatedFlag = runOptimizer(mutatedFlag, getLeaves(roots), MergeParse);
+  mutatedFlag = runOptimizer(mutatedFlag, getLeaves(roots), optimizers.RemoveDuplicateTimeUnits);
+  mutatedFlag = runOptimizer(mutatedFlag, roots, MoveFacetDown);
+  mutatedFlag = runOptimizer(mutatedFlag, roots, MergeIdenticalTransforms);
 
   keys(dataComponent.sources).forEach(s => {
     if (dataComponent.sources[s].numChildren() === 0) {
