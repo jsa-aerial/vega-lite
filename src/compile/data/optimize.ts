@@ -10,6 +10,7 @@ import {SourceNode} from './source';
 import {StackNode} from './stack';
 
 export const FACET_SCALE_PREFIX = 'scale_';
+export const MAX_OPTIMIZATION_RUNS = 5;
 
 /**
  * Clones the subtree and ignores output nodes except for the leafs, which are renamed.
@@ -42,11 +43,11 @@ function cloneSubtree(facet: FacetNode) {
  * After moving down the facet node, make a copy of the subtree and make it a child of the main output.
  */
 function moveFacetDown(node: DataFlowNode): boolean {
-  let flag = false;
+  let mutatedFlag = false;
   if (node instanceof FacetNode) {
     if (node.numChildren() === 1 && !(node.children[0] instanceof OutputNode)) {
       // move down until we hit a fork or output node
-      flag = true;
+      mutatedFlag = true;
       const child = node.children[0];
 
       if (child instanceof AggregateNode || child instanceof StackNode) {
@@ -57,32 +58,31 @@ function moveFacetDown(node: DataFlowNode): boolean {
       moveFacetDown(node);
     } else {
       // move main to facet
-
-      flag = moveMainDownToFacet(node.model.component.data.main) || flag;
+      mutatedFlag = moveMainDownToFacet(node.model.component.data.main) || mutatedFlag;
 
       // replicate the subtree and place it before the facet's main node
       const copy: DataFlowNode[] = flatten(node.children.map(cloneSubtree(node)));
       copy.forEach(c => (c.parent = node.model.component.data.main));
     }
   } else {
-    flag = node.children.map(moveFacetDown).some(x => x === true) || flag;
+    mutatedFlag = node.children.map(moveFacetDown).some(x => x === true) || mutatedFlag;
   }
-  return flag;
+  return mutatedFlag;
 }
 
 function moveMainDownToFacet(node: DataFlowNode): boolean {
-  let flag = false;
+  let mutatedFlag = false;
   if (node instanceof OutputNode && node.type === MAIN) {
     if (node.numChildren() === 1) {
       const child = node.children[0];
       if (!(child instanceof FacetNode)) {
-        flag = true;
+        mutatedFlag = true;
         child.swapWithParent();
         moveMainDownToFacet(node);
       }
     }
   }
-  return flag;
+  return mutatedFlag;
 }
 
 /**
@@ -90,14 +90,14 @@ function moveMainDownToFacet(node: DataFlowNode): boolean {
  */
 function removeUnnecessaryNodes(node: DataFlowNode): boolean {
   // remove output nodes that are not required
-  let flag = false;
+  let mutatedFlag = false;
   if (node instanceof OutputNode && !node.isRequired()) {
-    flag = true;
+    mutatedFlag = true;
     node.remove();
   }
 
-  flag = node.children.map(removeUnnecessaryNodes).some(x => x === true) || flag;
-  return flag;
+  mutatedFlag = node.children.map(removeUnnecessaryNodes).some(x => x === true) || mutatedFlag;
+  return mutatedFlag;
 }
 
 /**
@@ -121,7 +121,7 @@ function getLeaves(roots: DataFlowNode[]) {
  * Inserts an Intermediate ParseNode containing all non-conflicting Parse fields and removes the empty ParseNodes
  */
 export function mergeParse(node: DataFlowNode): optimizers.OptimizerFlags {
-  let flag = false;
+  let mutatedFlag = false;
   const parent = node.parent;
   if (parent === undefined) {
     return {continueFlag: false, mutatedFlag: false};
@@ -140,7 +140,7 @@ export function mergeParse(node: DataFlowNode): optimizers.OptimizerFlags {
       }
     }
     if (keys(commonParse).length !== 0) {
-      flag = true;
+      mutatedFlag = true;
       const mergedParseNode = new ParseNode(parent, commonParse);
       for (const parseNode of parseChildren) {
         for (const key of keys(commonParse)) {
@@ -154,7 +154,7 @@ export function mergeParse(node: DataFlowNode): optimizers.OptimizerFlags {
       }
     }
   }
-  return {continueFlag: true, mutatedFlag: flag};
+  return {continueFlag: true, mutatedFlag};
 }
 
 function optimizationDataflowHelper(dataComponent: DataComponent) {
@@ -202,7 +202,7 @@ function optimizationDataflowHelper(dataComponent: DataComponent) {
  * Optimizes the dataflow of the passed in data component.
  */
 export function optimizeDataflow(data: DataComponent) {
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < MAX_OPTIMIZATION_RUNS; i++) {
     if (!optimizationDataflowHelper(data)) {
       break;
     }
