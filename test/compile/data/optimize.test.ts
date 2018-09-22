@@ -39,9 +39,7 @@ describe('compile/data/optimize', () => {
   describe('optimizeDataFlow', () => {
     it('should push up common parse', () => {
       const source = new SourceNode(null);
-      // @ts-ignore
       const parseOne = new ParseNode(source, {a: 'time', b: 'number'});
-      // @ts-ignore
       const parseTwo = new ParseNode(source, {a: 'time', b: 'date'});
       // @ts-ignore
       const outputOne = new OutputNode(parseOne, 'foo', null, {foo: 1});
