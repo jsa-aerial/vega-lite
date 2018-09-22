@@ -11,7 +11,7 @@ export interface OptimizerFlags {
    */
   continueFlag: boolean;
   /**
-   * If true the tree has been mutated by the function
+   * If true, the tree has been mutated by the function
    */
   mutatedFlag: boolean;
 }
