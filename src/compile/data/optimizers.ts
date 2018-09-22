@@ -7,7 +7,7 @@ import {TimeUnitNode} from './timeunit';
 
 export interface OptimizerFlags {
   /**
-   * If true iteration continues
+   * If true, iteration continues
    */
   continueFlag: boolean;
   /**
