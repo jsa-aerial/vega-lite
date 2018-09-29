@@ -182,8 +182,9 @@ export function pathGroupingFields(mark: Mark, encoding: Encoding<string>): stri
       case 'text':
       case 'shape':
         return details;
-
       case 'tooltip':
+        // tooltip fields should not be added to group by
+        return details;
       case 'detail':
       case 'key':
         const channelDef = encoding[channel];
