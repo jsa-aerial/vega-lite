@@ -5,6 +5,7 @@ import {hash, StringSet} from '../../util';
 import {VgLookupTransform} from '../../vega.schema';
 import {Model} from '../model';
 import {DataFlowNode, OutputNode, TransformNode} from './dataflow';
+import {findSource} from './parse';
 import {SourceNode} from './source';
 
 export class LookupNode extends TransformNode {
@@ -14,11 +15,12 @@ export class LookupNode extends TransformNode {
 
   public static make(parent: DataFlowNode, model: Model, transform: LookupTransform, counter: number) {
     const sources = model.component.data.sources;
-    const s = new SourceNode(transform.from.data);
-    let fromSource = sources[s.hash()];
+
+    let fromSource = findSource(transform.from.data, sources);
+
     if (!fromSource) {
-      sources[s.hash()] = s;
-      fromSource = s;
+      fromSource = new SourceNode(transform.from.data);
+      sources.push(fromSource);
     }
 
     const fromOutputName = model.getName(`lookup_${counter}`);
