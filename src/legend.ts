@@ -85,7 +85,7 @@ export interface Legend
   /**
    * The direction of the legend, one of `"vertical"` or `"horizontal"`.
    *
-   * __Default value:__ `"horizontal"` if there are multiple legends, otherwise `"vertical"`
+   * __Default value:__ "vertical"`
    */
   direction?: Orientation;
 

@@ -26,14 +26,5 @@ export function assembleLegends(model: Model): VgLegend[] {
 
   const legends = flatten(vals(legendByDomain)).map((legendCmpt: LegendComponent) => legendCmpt.combine());
 
-  // if we have many legends, set default direction to horizontal to get more compact layout
-  if (legends.length > 1) {
-    for (const legend of legends) {
-      if (!legend.direction) {
-        legend.direction = 'horizontal';
-      }
-    }
-  }
-
   return legends;
 }
